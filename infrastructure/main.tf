@@ -87,7 +87,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # produkcija: ograničiti na tvoj IP
+    cidr_blocks = ["${local.my_ip}/32"]
   }
 
   ingress {
@@ -109,7 +109,7 @@ resource "aws_security_group" "app_sg" {
 # EC2 Instance (Public)
 # -----------------------
 resource "aws_instance" "app_server" {
-  ami           = "ami-0c94855ba95c71c99" # Ubuntu 20.04 u eu-north-1
+  ami           = "ami-0683ee28af6610487"
   instance_type = var.app_instance_type
   subnet_id     = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
@@ -139,7 +139,7 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "mydb" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = "15.3"
+  engine_version         = null
   instance_class         = var.db_instance_class
   db_name                = "mydb"
   username               = "dbadmin"
