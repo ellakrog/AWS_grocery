@@ -4,8 +4,22 @@ frontend/temp_extract/
 frontend/src/config.js~
 venv/
 
-# Terraform files
+# Terraform local folders
+.terraform/
+.terraform.lock.hcl
+
+# Terraform state files
 *.tfstate
 *.tfstate.backup
+
+# Terraform variable files (osjetljive lozinke)
 *.tfvars
+
+# Crash logs
 crash.log
+
+# OS ili IDE fajlovi (opcionalno)
+.DS_Store
+*.swp
+*.idea/
+*.vscode/

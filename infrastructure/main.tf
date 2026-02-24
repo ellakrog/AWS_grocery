@@ -1,16 +1,12 @@
-# ========================================
-# Terraform AWS Public App + PostgreSQL
-# ========================================
-
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 # -----------------------
 # VPC
 # -----------------------
 resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
+  cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = { Name = "main-vpc" }
@@ -19,21 +15,26 @@ resource "aws_vpc" "main" {
 # -----------------------
 # Subneti
 # -----------------------
-# Public subnet - EC2 instanca
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = var.public_subnet_cidr
   map_public_ip_on_launch = true
-  availability_zone       = "us-east-1a"
+  availability_zone       = "${var.aws_region}a"
   tags = { Name = "public-subnet" }
 }
 
-# Private subnet - RDS
-resource "aws_subnet" "private" {
+resource "aws_subnet" "private1" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1a"
-  tags = { Name = "private-subnet" }
+  cidr_block        = var.private_subnet1_cidr
+  availability_zone = "${var.aws_region}a"
+  tags = { Name = "private-subnet-1" }
+}
+
+resource "aws_subnet" "private2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet2_cidr
+  availability_zone = "${var.aws_region}b"
+  tags = { Name = "private-subnet-2" }
 }
 
 # -----------------------
@@ -66,9 +67,8 @@ resource "aws_route_table_association" "public_assoc" {
 resource "aws_security_group" "app_sg" {
   name        = "app-sg"
   vpc_id      = aws_vpc.main.id
-  description = "Allow HTTP, app port 5000, SSH and PostgreSQL"
+  description = "Allow HTTP, app port 5000, SSH, and PostgreSQL"
 
-  # HTTP port 80
   ingress {
     from_port   = 80
     to_port     = 80
@@ -76,7 +76,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # App port 5000
   ingress {
     from_port   = 5000
     to_port     = 5000
@@ -84,20 +83,18 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # SSH port 22
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # za produkciju bolje ograničiti na tvoju IP
+    cidr_blocks = ["0.0.0.0/0"] # produkcija: ograničiti na tvoj IP
   }
 
-  # PostgreSQL port 5432
   ingress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"] # samo unutar VPC-ja
+    cidr_blocks = [var.vpc_cidr] # EC2 može pristupiti RDS-u unutar VPC
   }
 
   egress {
@@ -112,16 +109,13 @@ resource "aws_security_group" "app_sg" {
 # EC2 Instance (Public)
 # -----------------------
 resource "aws_instance" "app_server" {
-  ami           = "ami-0c94855ba95c71c99" # Ubuntu 20.04 u us-east-1
-  instance_type = "t3.micro"
+  ami           = "ami-0c94855ba95c71c99" # Ubuntu 20.04 u eu-north-1
+  instance_type = var.app_instance_type
   subnet_id     = aws_subnet.public.id
-  security_groups = [aws_security_group.app_sg.id]
+  vpc_security_group_ids = [aws_security_group.app_sg.id]
 
-  tags = {
-    Name = "app-server"
-  }
+  tags = { Name = "app-server" }
 
-  # User data za start aplikacije na portu 5000
   user_data = <<-EOF
               #!/bin/bash
               sudo apt update
@@ -131,35 +125,28 @@ resource "aws_instance" "app_server" {
 }
 
 # -----------------------
-# RDS PostgreSQL (Private)
+# RDS PostgreSQL (Private, Multi-AZ)
 # -----------------------
 resource "aws_db_subnet_group" "main" {
   name       = "main-subnet-group"
-  subnet_ids = [aws_subnet.private.id]
+  subnet_ids = [
+    aws_subnet.private1.id,
+    aws_subnet.private2.id
+  ]
   tags = { Name = "main-subnet-group" }
 }
 
 resource "aws_db_instance" "mydb" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = "15.2"
-  instance_class         = "db.t3.micro"
-  name                   = "mydb"
-  username               = "admin"
-  password               = "YourPassword123" # promeni u sigurnu lozinku
+  engine_version         = "15.3"
+  instance_class         = var.db_instance_class
+  db_name                = "mydb"
+  username               = "dbadmin"
+  password               = var.db_password
   port                   = 5432
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+  multi_az               = true        # omogućava failover
   skip_final_snapshot    = true
-}
-
-# -----------------------
-# IAM User
-# -----------------------
-resource "aws_iam_user" "dev_user" {
-  name = "dev-user"
-}
-
-resource "aws_iam_access_key" "dev_user_key" {
-  user = aws_iam_user.dev_user.name
 }
