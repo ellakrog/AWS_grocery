@@ -87,7 +87,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${local.my_ip}/32"]
+    cidr_blocks = [var.my_ip]
   }
 
   ingress {
@@ -149,4 +149,37 @@ resource "aws_db_instance" "mydb" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   multi_az               = true        # omogućava failover
   skip_final_snapshot    = true
+}
+
+# -----------------------
+# S3 Bucket for Avatars
+# -----------------------
+
+resource "aws_s3_bucket" "avatars" {
+  bucket = "week7-ljubica-avatar-bucket" 
+}
+
+resource "aws_s3_bucket_public_access_block" "avatars_block" {
+  bucket = aws_s3_bucket.avatars.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "avatars_policy" {
+  bucket = aws_s3_bucket.avatars.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = "*"
+        Action = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.avatars.arn}/*"
+      }
+    ]
+  })
 }

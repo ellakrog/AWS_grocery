@@ -45,3 +45,7 @@ variable "db_instance_class" {
   type        = string
   default     = "db.t3.micro"
 }
+variable "my_ip" {
+  description = "Public IP address allowed to access the resource"
+  type        = string
+}
