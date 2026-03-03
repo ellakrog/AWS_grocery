@@ -32,7 +32,18 @@ variable "my_ip" {
   description = "Your public IP for SSH access"
   type        = string
 }
-
+variable "ec2_role_name" {
+  type    = string
+  default = "grocerymate-ec2-role"
+}
+variable "s3_policy_name" {
+  type    = string
+  default = "grocerymate-s3-policy"
+}
+variable "ec2_instance_profile_name" {
+  type    = string
+  default = "grocerymate-ec2-profile"
+}
 variable "app_instance_type" {
   description = "EC2 instance type"
   type        = string
