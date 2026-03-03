@@ -13,7 +13,7 @@ resource "aws_vpc" "main" {
 }
 
 # -----------------------
-# Subneti
+# Subnets
 # -----------------------
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
@@ -64,10 +64,11 @@ resource "aws_route_table_association" "public_assoc" {
 # -----------------------
 # Security Groups
 # -----------------------
+# App (EC2) SG
 resource "aws_security_group" "app_sg" {
   name        = "app-sg"
   vpc_id      = aws_vpc.main.id
-  description = "Allow HTTP, app port 5000, SSH, and PostgreSQL"
+  description = "Allow HTTP, app port 5000, and SSH"
 
   ingress {
     from_port   = 80
@@ -90,11 +91,25 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["${var.my_ip}/32"]
   }
 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# RDS SG
+resource "aws_security_group" "rds_sg" {
+  name        = "rds-sg"
+  vpc_id      = aws_vpc.main.id
+  description = "Allow access from app servers only"
+
   ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] # EC2 može pristupiti RDS-u unutar VPC
+    from_port       = var.db_port
+    to_port         = var.db_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app_sg.id]
   }
 
   egress {
@@ -105,14 +120,16 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
+
 # -----------------------
-# EC2 Instance (Public)
+# EC2 Instance
 # -----------------------
 resource "aws_instance" "app_server" {
-  ami           = "ami-0683ee28af6610487"
-  instance_type = var.app_instance_type
-  subnet_id     = aws_subnet.public.id
+  ami                    = var.app_ami
+  instance_type          = var.app_instance_type
+  subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+   key_name = "school-key" 
 
   tags = { Name = "app-server" }
 
@@ -125,9 +142,9 @@ resource "aws_instance" "app_server" {
 }
 
 # -----------------------
-# RDS PostgreSQL (Private, Multi-AZ)
+# RDS Subnet Group
 # -----------------------
-resource "aws_db_subnet_group" "main" {
+resource "aws_db_subnet_group" "rds_subnet_group" {
   name       = "main-subnet-group"
   subnet_ids = [
     aws_subnet.private1.id,
@@ -136,30 +153,20 @@ resource "aws_db_subnet_group" "main" {
   tags = { Name = "main-subnet-group" }
 }
 
+# -----------------------
+# RDS PostgreSQL
+# -----------------------
 resource "aws_db_instance" "mydb" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = null
+  engine_version         = var.engine_version
   instance_class         = var.db_instance_class
-  db_name                = "mydb"
-  username               = "dbadmin"
+  db_name                = var.db_name
+  username               = var.db_username
   password               = var.db_password
-  port                   = 5432
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
-  multi_az               = true        # omogućava failover
+  port                   = var.db_port
+  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  multi_az               = true
   skip_final_snapshot    = true
-}
-
-# -----------------------
-# S3 Bucket for Avatars
-# -----------------------
-
-resource "aws_s3_bucket" "avatars" {
-  bucket = "grocerymate-avatars"
-
-  tags = {
-    Name        = "grocerymate-avatars"
-    Environment = "Dev"
-  }
 }
