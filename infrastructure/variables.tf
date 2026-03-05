@@ -49,6 +49,17 @@ variable "app_instance_type" {
   type        = string
   default     = "t3.micro"
 }
+variable "db_allocated_storage" {
+  description = "Storage size for RDS instance"
+  type        = number
+  default     = 20
+}
+
+variable "db_engine" {
+  description = "Database engine"
+  type        = string
+  default     = "postgres"
+}
 variable "app_ami" {
   description = "AMI ID for the EC2 application server"
   type        = string
@@ -74,7 +85,7 @@ variable "db_name" {
 variable "db_username" {
   description = "RDS username"
   type        = string
-  default     = "grocery_user"
+  default     = "grocery_user" #better in terraform.tfvars define the username
 }
 
 variable "db_password" {

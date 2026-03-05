@@ -213,8 +213,8 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 # RDS PostgreSQL
 # -----------------------
 resource "aws_db_instance" "mydb" {
-  allocated_storage      = 20
-  engine                 = "postgres"
+  allocated_storage      = var.db_allocated_storage
+  engine                 = var.db_engine
   engine_version         = var.engine_version
   instance_class         = var.db_instance_class
   db_name                = var.db_name
