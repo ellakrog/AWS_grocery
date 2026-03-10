@@ -18,7 +18,6 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidr
-  map_public_ip_on_launch = true
   availability_zone       = "${var.aws_region}a"
   tags = { Name = "public-subnet" }
 }
@@ -140,31 +139,13 @@ resource "aws_iam_role" "ec2_role" {
 # Policy za S3
 # -----------------------
 
-resource "aws_iam_policy" "s3_policy" {
-  name = var.s3_policy_name
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = ["s3:ListBucket"],
-        Resource = "arn:aws:s3:::grocerymate-avatars-ljubica"
-      },
-      {
-        Effect = "Allow"
-        Action = ["s3:GetObject","s3:PutObject"],
-        Resource = "arn:aws:s3:::grocerymate-avatars-ljubica/*"
-      }
-    ]
-  })
-}
 
 # -----------------------
 # Attach policy to role
 # -----------------------
 resource "aws_iam_role_policy_attachment" "attach_s3" {
   role = aws_iam_role.ec2_role.name
-  policy_arn = aws_iam_policy.s3_policy.arn
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
 # -----------------------
@@ -184,17 +165,19 @@ resource "aws_instance" "app_server" {
   instance_type          = var.app_instance_type
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-   iam_instance_profile = aws_iam_instance_profile.ec2_profile.name #Attach profile to EC2 instance
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name #Attach profile to EC2 instance
   key_name = "school-key" 
-
+  associate_public_ip_address = true
   tags = { Name = "app-server" }
 
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo apt update
-              sudo apt install -y python3-pip
-              nohup python3 /home/ubuntu/app.py --port 5000 &
-              EOF
+
+  #user_data = <<-EOF
+  ##!/bin/bash
+  #sudo apt update
+  #sudo apt install -y python3-pip
+  #nohup python3 /home/ubuntu/app.py --port 5000 &
+  #EOF
+      
 }
 
 # -----------------------
