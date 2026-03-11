@@ -19,7 +19,7 @@ The infrastructure separates **public-facing components** from **internal resour
 
 ## 📊 Architecture Diagram
 
-![Architecture Diagram](grocerymate_architectureA.drawio.png)
+![Architecture Diagram](grocerymate_architecture_final.drawio.png)
 
 ---
 
