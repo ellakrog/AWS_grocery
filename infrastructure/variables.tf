@@ -44,6 +44,11 @@ variable "ec2_instance_profile_name" {
   type    = string
   default = "grocerymate-ec2-profile"
 }
+variable "key_name" {
+  description = "Name of the SSH key"
+  type        = string
+  default     = "school-key"
+}
 variable "app_instance_type" {
   description = "EC2 instance type"
   type        = string
