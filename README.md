@@ -61,7 +61,7 @@ terraform apply
 SSH into the instance:
 
 ```bash
-ssh -i <KEY_NAME>.pem ubuntu@<PUBLIC_IP>
+ssh -i <KEY_NAME>.pem ec2-user@<PUBLIC_IP>
 ```
 
 Check role and S3 access:
