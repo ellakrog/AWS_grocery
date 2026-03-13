@@ -110,4 +110,31 @@ variable "s3_bucket_name" {
   type        = string
   default     = "grocerymate-avatars-ljubica"
 }
+variable "cpu_threshold" {
+  description = "CPU threshold za alarm"
+  type        = number
+  default     = 80
+}
 
+variable "cpu_alarm_period" {
+  description = "Period u sekundama za CloudWatch alarm"
+  type        = number
+  default     = 300
+}
+
+variable "cpu_evaluation_periods" {
+  description = "Broj perioda prije nego alarm trigger-a"
+  type        = number
+  default     = 2
+}
+
+variable "cloudwatch_alarm_name" {
+  description = "Ime CloudWatch alarma"
+  type        = string
+  default     = "HighCPUAlarm"
+}
+
+variable "alert_email" {
+  description = "Email za CloudWatch alarm"
+  type        = string
+}

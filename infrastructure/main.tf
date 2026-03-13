@@ -209,3 +209,35 @@ resource "aws_db_instance" "mydb" {
   multi_az               = true
   skip_final_snapshot    = true
 }
+# -----------------------
+# SNS Topic 
+# -----------------------
+resource "aws_sns_topic" "alerts" {
+  name = "app-alerts"
+}
+
+resource "aws_sns_topic_subscription" "email_sub" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email 
+}
+
+# -----------------------
+# CloudWatch Alarm za EC2 CPU
+# -----------------------
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = var.cloudwatch_alarm_name
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = var.cpu_evaluation_periods
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = var.cpu_alarm_period
+  statistic           = "Average"
+  threshold           = var.cpu_threshold
+
+  dimensions = {
+    InstanceId = aws_instance.app_server.id
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+}
