@@ -135,10 +135,6 @@ resource "aws_iam_role" "ec2_role" {
     ]
   })
 }
-# -----------------------
-# Policy za S3
-# -----------------------
-
 
 # -----------------------
 # Attach policy to role
@@ -223,7 +219,7 @@ resource "aws_sns_topic_subscription" "email_sub" {
 }
 
 # -----------------------
-# CloudWatch Alarm za EC2 CPU
+# CloudWatch Alarm (EC2 CPU)
 # -----------------------
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = var.cloudwatch_alarm_name
